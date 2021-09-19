@@ -1,0 +1,23 @@
+1、rpm -ivh mysql-server
+2、rpm -ivh mysql-client
+如果需要什么依赖，就使用yum install 安装
+3、/usr/bin/mysql_install_db --user=用户名
+4、service mysql start
+5、service mysql status 查看mysql是否已经启动成功
+6、为root用户设置密码：/usr/bin/mysqladmin -u root password 123456
+7、设置mysql开机自启：chkconfig mysql on
+8、查看是否设置成功：chkconfig --list | grep mysql
+或者 ntsysv 查看mysql前面有没有星号
+9、复制配置文件，5.5版本 cp /usr/share/mysql/my-huge.cnf /etc/my.cnf    5.6版本 cp /usr/share/mysql/my-default.cnf /etc/my.cnf
+10、重启mysql
+12、查看字符集：show variables like '%char%';
+13、修改字符集：vim /etc/my.cnf
+修改如下：
+[client]
+default-character-set=utf8
+[mysqld]
+character_set_server=utf8
+character_set_client=utf8
+collation-server=utf8_general_ci
+ [mysql]
+default-character-set=utf8
