@@ -10,8 +10,7 @@ var open = function() {
     var repoContainer = $('.repo-content');
     var errorContainer = repoContainer.find(".blankslate");
     var countContainer = $("#repo-count");
-
-    $.get("https://api.github.com/users/<%=theme.github.username%>/repos", function(result) {
+    $.get("https://gitee.com/api/v5/user/repos?access_token=<%=theme.gitee.token%>&sort=full_name&page=1&per_page=20", function(result) {
       if (result) {
         errorContainer.remove();
         countContainer.text(result.length); //设置项目个数

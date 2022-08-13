@@ -3,11 +3,11 @@ menu:
   Home: .
   Archives: archives  # 归档
   Categories: categories  # 分类
-  Tags: tags  # 标签
+  #Tags: tags  # 标签
   Repository: repository  # github repositories
   Books: books  # 豆瓣书单
-  Links: links  # 友链
-  About: about  # 关于
+  #Links: links  # 友链
+  #About: about  # 关于
 
 # Enable/Disable menu icons
 menu_icons:
@@ -31,7 +31,7 @@ site:
     width: 40
     height: 40
     url: ../images/logo.png
-  title: 凌风的blog # 页面title
+  title: 八一的blog # 页面title
   favicon: /favicon.png
   board: <p>欢迎交流与分享经验!</p> # 站点公告
   copyright: true # 底部版权信息
@@ -102,7 +102,9 @@ share:
 
 # Github
 github: 
-  username: Over-Coding  # github username
+  username: OverCoding  # github username
+gitee: 
+  token: 6090dd2520b730a70d51e47bdf16d288
 
 # Comment
 # Gitment
@@ -186,15 +188,15 @@ profile:
   enabled: true # Whether to show profile bar
   avatar: images/avatar.jpg
   gravatar: # Gravatar email address, if you enable Gravatar, your avatar config will be overriden
-  author: 凌风
+  author: 八一
   author_title: 一个程序员界的小学生
   author_description: 错把陈醋当做墨，写近半生都是酸
   location: BeiJing, China
-  follow: https://github.com/ldknife
+  follow: https://gitee.com/OverCoding
   # Social Links
   social:
     links:
-      github: https://github.com/Over-Coding
+      github: https://gitee.com/OverCoding
       weibo: /
       twitter: /
       # facebook: /
@@ -205,20 +207,9 @@ profile:
   # My Skills 
   skills:
     Java: ★★★★☆
-    Spring: ★★★☆☆
-    SpringBoot: ★★★☆☆
-    Mybatis: ★★★☆☆
-    Dubbo: ★★★☆☆
-    SpringCloud: ★★☆☆☆
-    Zookeeper: ★★★☆☆
-    Redis: ★★★☆☆
-    Kafka: ★★★☆☆
-    Elasticsearch: ★★☆☆☆
-    Nginx: ★★★☆☆
-    Linux: ★★★☆☆
   # My Personal Links
   links:
-    Github: https://github.com/Over-Coding
+    Github: https://gitee.com/OverCoding
     #Blog: /
     #微博: /
     #花瓣: /
@@ -226,8 +217,6 @@ profile:
   # My Personal Labels
   labels:
     - Java开发
-    - 大数据开发
-    - Web开发
   # My Personal Works
   #works:
     #name:
