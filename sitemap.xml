@@ -404,20 +404,6 @@
   </url>
   
   <url>
-    <loc>https://blog.lee81.cn/tags/JVM/</loc>
-    <lastmod>2022-08-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
-    <loc>https://blog.lee81.cn/tags/%E5%B7%A5%E5%85%B7/</loc>
-    <lastmod>2022-08-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://blog.lee81.cn/tags/Kafka/</loc>
     <lastmod>2022-08-13</lastmod>
     <changefreq>weekly</changefreq>
@@ -426,6 +412,20 @@
   
   <url>
     <loc>https://blog.lee81.cn/tags/Linux/</loc>
+    <lastmod>2022-08-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://blog.lee81.cn/tags/JVM/</loc>
+    <lastmod>2022-08-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://blog.lee81.cn/tags/%E5%B7%A5%E5%85%B7/</loc>
     <lastmod>2022-08-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
@@ -574,13 +574,6 @@
   </url>
   
   <url>
-    <loc>https://blog.lee81.cn/categories/JVM/</loc>
-    <lastmod>2022-08-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.2</priority>
-  </url>
-  
-  <url>
     <loc>https://blog.lee81.cn/categories/Kafka/</loc>
     <lastmod>2022-08-13</lastmod>
     <changefreq>weekly</changefreq>
@@ -589,6 +582,13 @@
   
   <url>
     <loc>https://blog.lee81.cn/categories/Linux/</loc>
+    <lastmod>2022-08-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  
+  <url>
+    <loc>https://blog.lee81.cn/categories/JVM/</loc>
     <lastmod>2022-08-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.2</priority>
