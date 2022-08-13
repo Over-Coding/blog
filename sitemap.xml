@@ -20,6 +20,15 @@
   </url>
   
   <url>
+    <loc>https://blog.lee81.cn/categories/index.html</loc>
+    
+    <lastmod>2022-08-13</lastmod>
+    
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://blog.lee81.cn/links/index.html</loc>
     
     <lastmod>2022-08-13</lastmod>
@@ -30,15 +39,6 @@
   
   <url>
     <loc>https://blog.lee81.cn/repository/index.html</loc>
-    
-    <lastmod>2022-08-13</lastmod>
-    
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  
-  <url>
-    <loc>https://blog.lee81.cn/categories/index.html</loc>
     
     <lastmod>2022-08-13</lastmod>
     

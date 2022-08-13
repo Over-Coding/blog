@@ -17,13 +17,13 @@
   <meta http-equiv="window-target" content="_top" />
   
   
-  <title>项目 | 凌风的blog</title>
+  <title>项目 | 八一的blog</title>
   <meta property="og:type" content="website">
 <meta property="og:title" content="项目">
 <meta property="og:url" content="https://blog.lee81.cn/repository/index.html">
 <meta property="og:site_name" content="Hexo">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2022-08-13T12:29:03.597Z">
+<meta property="article:published_time" content="2022-08-13T13:43:27.143Z">
 <meta property="article:modified_time" content="2022-08-13T12:29:03.597Z">
 <meta property="article:author" content="八一">
 <meta name="twitter:card" content="summary">
@@ -54,10 +54,10 @@
       
       
       <div class="profile-block text-center">
-        <a id="avatar" href="https://github.com/ldknife" target="_blank">
+        <a id="avatar" href="https://gitee.com/OverCoding" target="_blank">
           <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
         </a>
-        <h2 id="name" class="hidden-xs hidden-sm">凌风</h2>
+        <h2 id="name" class="hidden-xs hidden-sm">八一</h2>
         <h3 id="title" class="hidden-xs hidden-sm hidden-md">一个程序员界的小学生</h3>
         <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> BeiJing, China</small>
       </div>
@@ -128,16 +128,6 @@
         </li>
         
         
-        <li class="menu-item menu-item-tags">
-          <a href="/tags">
-            
-            <i class="icon icon-tags"></i>
-            
-            <span class="menu-title">标签</span>
-          </a>
-        </li>
-        
-        
         <li class="menu-item menu-item-repository">
           <a href="/repository">
             
@@ -157,32 +147,12 @@
           </a>
         </li>
         
-        
-        <li class="menu-item menu-item-links">
-          <a href="/links">
-            
-            <i class="icon icon-friendship"></i>
-            
-            <span class="menu-title">友链</span>
-          </a>
-        </li>
-        
-        
-        <li class="menu-item menu-item-about">
-          <a href="/about">
-            
-            <i class="icon icon-cup-fill"></i>
-            
-            <span class="menu-title">关于</span>
-          </a>
-        </li>
-        
       </ul>
       
 	
     <ul class="social-links">
     	
-        <li><a href="https://github.com/Over-Coding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        <li><a href="https://gitee.com/OverCoding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
         
         <li><a href="/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
         
@@ -379,7 +349,7 @@
 	
     <ul class="social-links">
     	
-        <li><a href="https://github.com/Over-Coding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        <li><a href="https://gitee.com/OverCoding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
         
         <li><a href="/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
         
@@ -445,8 +415,7 @@ var open = function() {
     var repoContainer = $('.repo-content');
     var errorContainer = repoContainer.find(".blankslate");
     var countContainer = $("#repo-count");
-
-    $.get("https://api.github.com/users/Over-Coding/repos", function(result) {
+    $.get("https://gitee.com/api/v5/user/repos?access_token=6090dd2520b730a70d51e47bdf16d288&sort=full_name&page=1&per_page=20", function(result) {
       if (result) {
         errorContainer.remove();
         countContainer.text(result.length); //设置项目个数
