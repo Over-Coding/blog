@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Zookeeper深入原理 | 凌风的blog</title>
+  <meta name="description" content="本篇文章摘自《从Paxos到Zookeeper分布式一致性原理与实践》  1、系统模型1.1、数据模型Zookeeper 的视图结构是一个树形结构，树上的每个节点称之为数据节点（即 ZNode），每个ZNode 上都可以保存数据，同时还可以挂载子节点。并且Zookeeper的根节点为 “&#x2F;“。  1.2、节点类型在 Zookeeper 中，每个数据节点都是有生命周期的，其生命周期的长短取决于数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Zookeeper深入原理">
+<meta property="og:url" content="https://blog.lee81.cn/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本篇文章摘自《从Paxos到Zookeeper分布式一致性原理与实践》  1、系统模型1.1、数据模型Zookeeper 的视图结构是一个树形结构，树上的每个节点称之为数据节点（即 ZNode），每个ZNode 上都可以保存数据，同时还可以挂载子节点。并且Zookeeper的根节点为 “&#x2F;“。  1.2、节点类型在 Zookeeper 中，每个数据节点都是有生命周期的，其生命周期的长短取决于数据">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.lee81.cn/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/zookeeper%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png">
+<meta property="og:image" content="https://blog.lee81.cn/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/Watcher.png">
+<meta property="article:published_time" content="2020-04-18T06:50:30.000Z">
+<meta property="article:modified_time" content="2022-08-13T12:29:03.592Z">
+<meta property="article:author" content="八一">
+<meta property="article:tag" content="深入原理">
+<meta property="article:tag" content="Zookeeper">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.lee81.cn/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/zookeeper%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://blog.lee81.cn/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+    <link href="//cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.3.5/dist/jquery.fancybox.min.css" rel="stylesheet">
+  
+  
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/ldknife" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">凌风</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">一个程序员界的小学生</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> BeiJing, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">项目</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">友链</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/Over-Coding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Cassandra/">Cassandra</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Elasticsearch/">Elasticsearch</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Hexo/">Hexo</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/JVM/">JVM</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Kafka/">Kafka</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Maven/">Maven</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Nginx/">Nginx</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpringBoot/">SpringBoot</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Zookeeper/">Zookeeper</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/">动态代理</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AC%94%E8%AF%95%E9%A2%98/">笔试题</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cassandra/" rel="tag">Cassandra</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/" rel="tag">Docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Elasticsearch/" rel="tag">Elasticsearch</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/" rel="tag">Linux</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Maven/" rel="tag">Maven</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/" rel="tag">Nginx</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SpringBoot/" rel="tag">SpringBoot</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ubuntu/" rel="tag">Ubuntu</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/WebSocket/" rel="tag">WebSocket</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/" rel="tag">Zookeeper</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE/" rel="tag">一致性协议</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/" rel="tag">使用场景</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" rel="tag">动态代理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E8%A3%85/" rel="tag">安装</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%A2%E6%88%B7%E7%AB%AF/" rel="tag">客户端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag">工具</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8E%92%E5%BA%8F/" rel="tag">排序</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/" rel="tag">深入原理</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AC%94%E8%AF%95%E9%A2%98/" rel="tag">笔试题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95/" rel="tag">算法</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%BF%90%E7%BB%B4/" rel="tag">运维</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="tag">集群搭建</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">八月 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">八月 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">五月 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">四月 2020</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">三月 2020</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">二月 2020</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">一月 2020</a><span class="archive-list-count">7</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AC%94%E8%AF%95%E9%A2%98/">笔试题</a>
+              </p>
+              <p class="item-title">
+                <a href="/2022/08/13/%E8%AE%B0%E4%B8%80%E9%81%93%E7%AC%94%E8%AF%95%E9%A2%98/" class="title">记一道笔试题</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-08-13T12:29:03.596Z" itemprop="datePublished">2022-08-13</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/08/08/%E7%AE%97%E6%B3%95--%E6%8F%92%E5%85%A5%E6%8E%92%E5%BA%8F/" class="title">算法--插入排序</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-08-08T14:32:27.000Z" itemprop="datePublished">2020-08-08</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/08/06/%E7%AE%97%E6%B3%95--%E9%80%89%E6%8B%A9%E6%8E%92%E5%BA%8F/" class="title">算法--选择排序</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-08-06T13:15:20.000Z" itemprop="datePublished">2020-08-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/08/05/%E7%AE%97%E6%B3%95--%E5%86%92%E6%B3%A1%E6%8E%92%E5%BA%8F/" class="title">算法--冒泡排序</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-08-05T06:09:27.000Z" itemprop="datePublished">2020-08-05</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Kafka/">Kafka</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/09/Kafka%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" class="title">Kafka集群搭建</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-09T01:10:44.000Z" itemprop="datePublished">2020-05-09</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E7%B3%BB%E7%BB%9F%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.</span> <span class="toc-text">1、系统模型</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-1%E3%80%81%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.1.</span> <span class="toc-text">1.1、数据模型</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-2%E3%80%81%E8%8A%82%E7%82%B9%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.2.</span> <span class="toc-text">1.2、节点类型</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-3%E3%80%81%E7%8A%B6%E6%80%81%E4%BF%A1%E6%81%AF"><span class="toc-number">1.3.</span> <span class="toc-text">1.3、状态信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-4%E3%80%81ZXID"><span class="toc-number">1.4.</span> <span class="toc-text">1.4、ZXID</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-5%E3%80%81%E7%89%88%E6%9C%AC"><span class="toc-number">1.5.</span> <span class="toc-text">1.5、版本</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-6%E3%80%81Watcher"><span class="toc-number">1.6.</span> <span class="toc-text">1.6、Watcher</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#1-6-1%E3%80%81%E6%A6%82%E8%BF%B0"><span class="toc-number">1.6.1.</span> <span class="toc-text">1.6.1、概述</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#1-6-2%E3%80%81Watcher%E7%89%B9%E6%80%A7"><span class="toc-number">1.6.2.</span> <span class="toc-text">1.6.2、Watcher特性</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#1-6-3%E3%80%81watcher%E6%8E%A5%E5%8F%A3%E8%AE%BE%E8%AE%A1"><span class="toc-number">1.6.3.</span> <span class="toc-text">1.6.3、watcher接口设计</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#1-6-4%E3%80%81%E6%8D%95%E8%8E%B7%E7%9B%B8%E5%BA%94%E7%9A%84%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.6.4.</span> <span class="toc-text">1.6.4、捕获相应的事件</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#1-7%E3%80%81ACL"><span class="toc-number">1.7.</span> <span class="toc-text">1.7、ACL</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#1-7-1%E3%80%81%E6%A6%82%E8%BF%B0"><span class="toc-number">1.7.1.</span> <span class="toc-text">1.7.1、概述</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#1-7-2%E3%80%81%E7%89%B9%E6%80%A7"><span class="toc-number">1.7.2.</span> <span class="toc-text">1.7.2、特性</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#1-7-3%E3%80%81%E6%A1%88%E4%BE%8B"><span class="toc-number">1.7.3.</span> <span class="toc-text">1.7.3、案例</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#1-7-4%E3%80%81ACL-%E8%B6%85%E7%BA%A7%E7%AE%A1%E7%90%86%E5%91%98"><span class="toc-number">1.7.4.</span> <span class="toc-text">1.7.4、ACL 超级管理员</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81Leader-%E9%80%89%E4%B8%BE"><span class="toc-number">2.</span> <span class="toc-text">2、Leader 选举</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1%E3%80%81%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%8A%B6%E6%80%81"><span class="toc-number">2.1.</span> <span class="toc-text">2.1、服务器状态</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2%E3%80%81%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%90%AF%E5%8A%A8%E6%97%B6%E6%9C%9F%E7%9A%84-Leader-%E9%80%89%E4%B8%BE"><span class="toc-number">2.2.</span> <span class="toc-text">2.2、服务器启动时期的 Leader 选举</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3%E3%80%81%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%BF%90%E8%A1%8C%E6%97%B6%E6%9C%9F%E7%9A%84-Leader-%E9%80%89%E4%B8%BE"><span class="toc-number">2.3.</span> <span class="toc-text">2.3、服务器运行时期的 Leader 选举</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4%E3%80%81Observer-%E8%A7%92%E8%89%B2%E5%8F%8A%E5%85%B6%E8%AE%BE%E7%BD%AE"><span class="toc-number">2.4.</span> <span class="toc-text">2.4、Observer 角色及其设置</span></a></li></ol></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-Zookeeper深入原理" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Zookeeper深入原理
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/" class="article-date">
+	  <time datetime="2020-04-18T06:50:30.000Z" itemprop="datePublished">2020-04-18</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Zookeeper/">Zookeeper</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/Zookeeper/" rel="tag">Zookeeper</a>, <a class="article-tag-link-link" href="/tags/%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/" rel="tag">深入原理</a>
+  </span>
+
+
+        
+	<span class="article-read hidden-xs">
+	    <i class="icon icon-eye-fill" aria-hidden="true"></i>
+	    <span id="busuanzi_container_page_pv">
+			<span id="busuanzi_value_page_pv">0</span>
+		</span>
+	</span>
+
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/#comments" class="article-comment-link">评论</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">字数统计: 4.7k(字)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">阅读时长: 18(分)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <blockquote>
+<p>本篇文章摘自《从Paxos到Zookeeper分布式一致性原理与实践》</p>
+</blockquote>
+<h3 id="1、系统模型"><a href="#1、系统模型" class="headerlink" title="1、系统模型"></a>1、系统模型</h3><h4 id="1-1、数据模型"><a href="#1-1、数据模型" class="headerlink" title="1.1、数据模型"></a>1.1、数据模型</h4><p>Zookeeper 的视图结构是一个树形结构，树上的每个节点称之为数据节点（即 ZNode），每个ZNode 上都可以保存数据，同时还可以挂载子节点。并且Zookeeper的根节点为 “/“。</p>
+<p><img src="zookeeper%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.png"></p>
+<h4 id="1-2、节点类型"><a href="#1-2、节点类型" class="headerlink" title="1.2、节点类型"></a>1.2、节点类型</h4><p>在 Zookeeper 中，每个数据节点都是有生命周期的，其生命周期的长短取决于数据节点的节点类型。在 Zookeeper 中有如下几类节点：</p>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>持久节点（PERSISTENT）</td>
+<td>指该数据节点被创建后，就会一直存在于 Zookeeper 服务器上，直到有删除操作来主动清除这个节点。</td>
+</tr>
+<tr>
+<td>持久顺序节点（PERSISTENT_SEQUENTIAL）</td>
+<td>基本特性和持久节点是一致的，额外的特性表现在顺序性上，在 Zookeeper 中，每个父节点都会为它的第一级子节点维护一份顺序，用于记录下每个子节点创建的先后顺序。基于这个顺序特性，在创建子节点的时候，可以设置这个标记，那么在创建节点过程中，Zookeeper 会自动为给定节点名加上一个数字后缀，作为一个新的、完整的节点名。<strong>另外需要注意的是，这个数字后缀的上限是整型的最大值。</strong></td>
+</tr>
+<tr>
+<td>临时节点（EPHEMERAL）</td>
+<td>临时节点的生命周期和客户端的会话绑定在一起，如果客户端会话失效，那么这个节点就会被自动清理掉。<strong>另外，Zookeeper 规定了不能基于临时节点来创建子节点，即临时节点只能作为叶子节点。</strong></td>
+</tr>
+<tr>
+<td>临时顺序节点（EPHEMERAL_SEQUENTIAL）</td>
+<td>基本特性和临时节点一致，只是添加了顺序的特性。</td>
+</tr>
+</tbody></table>
+<h4 id="1-3、状态信息"><a href="#1-3、状态信息" class="headerlink" title="1.3、状态信息"></a>1.3、状态信息</h4><p>每个数据节点中除了存储了数据内容之外，还存储了数据节点本身的一些状态信息（State）。</p>
+<table>
+<thead>
+<tr>
+<th>状态属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>cZxid</td>
+<td>即 Create ZXID，表示该数据节点被创建时的事务ID。</td>
+</tr>
+<tr>
+<td>ctime</td>
+<td>即 Create Time，表示该数据节点被创建的时间。</td>
+</tr>
+<tr>
+<td>mZxid</td>
+<td>即 Modified ZXID，表示该节点最后一次被更新时的事务ID。</td>
+</tr>
+<tr>
+<td>mtime</td>
+<td>即 Modified Time，表示该数据节点最后一次被更新的时间。</td>
+</tr>
+<tr>
+<td>pZxid</td>
+<td>表示该节点的子节点列表最后一次被修改时的事务ID。注意，只有子节点列表变更了才会变更 pZxid，子节点内容变更不会影响pZxid。</td>
+</tr>
+<tr>
+<td>cversion</td>
+<td>表示子节点的版本号。</td>
+</tr>
+<tr>
+<td>dataVersion</td>
+<td>表示数据节点的版本号。</td>
+</tr>
+<tr>
+<td>aclVersion</td>
+<td>表示节点的 ACL 版本号。</td>
+</tr>
+<tr>
+<td>ephemeralOwner</td>
+<td>创建该临时节点的会话的sessionID。如果该节点是持久节点，那么这个属性值为0。</td>
+</tr>
+<tr>
+<td>dataLength</td>
+<td>表示数据内容的长度。</td>
+</tr>
+<tr>
+<td>numChildren</td>
+<td>表示当前节点的子节点个数。</td>
+</tr>
+</tbody></table>
+<h4 id="1-4、ZXID"><a href="#1-4、ZXID" class="headerlink" title="1.4、ZXID"></a>1.4、ZXID</h4><p>在Zookeeper 中，事务是指能够改变 Zookeeper 服务器状态的操作，我们也称之为事务操作或更新操作，一般包括数据节点创建与删除、数据节点内容更新和客户端会话创建与失效等操作。对于每一个事务请求，Zookeeper 都会为其分配一个全局唯一的事务ID，用 ZXID 来表示，通常是一个 64 位的数字。每一个 ZXID 对应一次更新操作，从这些 ZXID 中可以间接地识别出 Zookeeper 处理这些更新操作请求的全局顺序。</p>
+<p>ZXID 是一个 64 位的数字，其中低 32 位可以看作是一个简单的单调递增的计数器，针对客户端的每一个事务请求，Leader 服务器在产生一个新的事务 Proposal 的时候，都会对该计数器进行加 1 操作；而高 32 位则代表了 Leader 周期 epoch 的编号，每当选举产生一个新的 Leader 服务器，就会从这个 Leader 服务器上取出其本地日志中最大事务 Proposal 的 ZXID，并从该 ZXID 中解析出对应的 epoch 值，然后再对其进行加 1 操作，之后就会以此编号作为新的 epoch，并将低 32 位置 0 来开始生成新的 ZXID。</p>
+<h4 id="1-5、版本"><a href="#1-5、版本" class="headerlink" title="1.5、版本"></a>1.5、版本</h4><p> Zookeeper 中为数据节点引入了版本的概念，每个数据节点都具有三种类型的版本信息（在上面的状态信息中已经介绍了三种版本信息代表的意思），对数据节点的任何更新操作都会引起版本号的变化。其中我们以 dataVersion 为例来说明。在一个数据节点被创建完毕之后，节点的dataVersion 值是 0，表示的含义是 ”当前节点自从创建之后，被更新过 0 次“。如果现在对该节点的数据内容进行更新操作，那么随后，dataVersion 的值就会变成 1。即表示的是对数据节点的数据内容的变更次数。</p>
+<p>版本的作用是用来实现乐观锁机制中的 “写入校验” 的。例如，当要修改数据节点的数据内容时，带上版本号，如果数据节点的版本号与传入的版本号相等，就进行修改，否则修改失败。</p>
+<h4 id="1-6、Watcher"><a href="#1-6、Watcher" class="headerlink" title="1.6、Watcher"></a>1.6、Watcher</h4><h5 id="1-6-1、概述"><a href="#1-6-1、概述" class="headerlink" title="1.6.1、概述"></a>1.6.1、概述</h5><p>Zookeeper 提供了分布式数据的发布/订阅功能。一个典型的发布/订阅模型系统定义了一种一对多的订阅关系，能够让多个订阅者同时监听某一个主题对象，当这个主题对象自身状态变化时，会通知所有订阅者，使它们能够做出相应的处理。在 Zookeeper 中，引入了 Watcher 机制来实现这种分布式的通知功能。Zookeeper 允许客户端向服务端注册一个 Watcher 监听，当服务端的一些指定事件触发了这个 Watcher，那么就会向指定客户端发送一个事件通知来实现分布式的通知功能。</p>
+<p><img src="Watcher.png"></p>
+<p>从上图可以看出 Zookeeper 的 Watcher 机制主要包括客户端线程、客户端WatchMananger 和 Zookeeper 服务器三部分。在具体工作流程上，简单地讲，客户端在向 Zookeeper 服务器注册 Watcher 的同时，会将 Watcher 对象存储在客户端的 WatchMananger 中。当 Zookeeper 服务器端触发 Watcher 事件后，会向客户端发送通知，客户端线程从 WatchManager 中取出对应的 Watcher 对象来执行回调逻辑。</p>
+<h5 id="1-6-2、Watcher特性"><a href="#1-6-2、Watcher特性" class="headerlink" title="1.6.2、Watcher特性"></a>1.6.2、Watcher特性</h5><ul>
+<li><strong>一次性：</strong>表示无论是服务端还是客户端，一旦一个 Watcher 被触发，Zookeeper 都会将其从相应的存储中移除。因此，开发人员在 Watcher 的使用上要记住的一点是需要反复注册。</li>
+<li><strong>客户端串行执行：</strong>客户端 Watcher 回调的过程是一个串行同步的过程，这为我们保证了顺序，同时，需要开发人员注意的一点是，千万不要因为一个 Watcher 的处理逻辑影响了整个客户端的 Watcher 回调。</li>
+<li><strong>轻量：</strong>WatchedEvent 是 Zookeeper 整个 Watcher 通知机制的最小通知单元，这个数据结构中只包含三部分内容：通知状态、事件类型和节点路径。也就是说，Watcher通知非常简单，只会告诉客户端发生了事件，而不会说明事件的具体内容。</li>
+</ul>
+<h5 id="1-6-3、watcher接口设计"><a href="#1-6-3、watcher接口设计" class="headerlink" title="1.6.3、watcher接口设计"></a>1.6.3、watcher接口设计</h5><p>Watcher是一个接口，任何实现了Watcher接口的类就是一个新的Watcher。Watcher内部包含了两个枚举类：KeeperState、EventType</p>
+<ul>
+<li><p><strong>Watcher通知状态(KeeperState)</strong></p>
+<p>KeeperState是客户端与服务端连接状态发生变化时对应的通知类型。路径为org.apache.zookeeper.Watcher.Event.KeeperState，是一个枚举类，其枚举属性如下：</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>枚举属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SyncConnected</td>
+<td>客户端与服务器正常连接时</td>
+</tr>
+<tr>
+<td>Disconnected</td>
+<td>客户端与服务器断开连接时</td>
+</tr>
+<tr>
+<td>Expired</td>
+<td>会话session失效时</td>
+</tr>
+<tr>
+<td>AuthFailed</td>
+<td>身份认证失败时</td>
+</tr>
+</tbody></table>
+<ul>
+<li><p><strong>Watcher事件类型(EventType)</strong></p>
+<p>EventType是数据节点(znode)发生变化时对应的通知类型。EventType变化时KeeperState永远处于SyncConnected通知状态下；当KeeperState发生变化时，EventType永远为None。其路径为org.apache.zookeeper.Watcher.Event.EventType，是一个枚举类，枚举属性如下：</p>
+</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>枚举属性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>None</td>
+<td>无</td>
+</tr>
+<tr>
+<td>NodeCreated</td>
+<td>Watcher监听的数据节点被创建时</td>
+</tr>
+<tr>
+<td>NodeDeleted</td>
+<td>Watcher监听的数据节点被删除时</td>
+</tr>
+<tr>
+<td>NodeDataChanged</td>
+<td>Watcher监听的数据节点内容发生变更时(无论内容数据是否变化)</td>
+</tr>
+<tr>
+<td>NodeChildrenChanged</td>
+<td>Watcher监听的数据节点的子节点列表发生变更时</td>
+</tr>
+</tbody></table>
+<p><strong>注</strong>：客户端接收到的相关事件通知中只包含状态及类型等信息，不包括节点变化前后的具体内容，变化前的数据需业务自身存储，变化后的数据需调用get等方法重新获取；</p>
+<h5 id="1-6-4、捕获相应的事件"><a href="#1-6-4、捕获相应的事件" class="headerlink" title="1.6.4、捕获相应的事件"></a>1.6.4、捕获相应的事件</h5><p>上面讲到zookeeper客户端连接的状态和zookeeper对znode节点监听的事件类型，下面我们来讲解如何建立zookeeper的watcher监听。在zookeeper中采用zk.getChildren(path, watch)、zk.exists(path, watch)、zk.getData(path, watcher, stat)这样的方式为某个znode注册监听。</p>
+<p>下表以node-x节点为例，说明调用的注册方法和可监听事件间的关系：</p>
+<table>
+<thead>
+<tr>
+<th align="left">注册方式</th>
+<th align="left">Created</th>
+<th align="left">ChildrenChanged</th>
+<th align="left">Changed</th>
+<th align="left">Deleted</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">zk.exists(“/node-x”,watcher)</td>
+<td align="left">可监控</td>
+<td align="left"></td>
+<td align="left">可监控</td>
+<td align="left">可监控</td>
+</tr>
+<tr>
+<td align="left">zk.getData(“/node-x”,watcher)</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">可监控</td>
+<td align="left">可监控</td>
+</tr>
+<tr>
+<td align="left">zk.getChildren(“/node-x”,watcher)</td>
+<td align="left"></td>
+<td align="left">可监控</td>
+<td align="left"></td>
+<td align="left">可监控</td>
+</tr>
+</tbody></table>
+<h4 id="1-7、ACL"><a href="#1-7、ACL" class="headerlink" title="1.7、ACL"></a>1.7、ACL</h4><p>Zookeeper 中提供了一套完善的 ACL（Access Control List）权限控制机制来保障数据的安全。</p>
+<h5 id="1-7-1、概述"><a href="#1-7-1、概述" class="headerlink" title="1.7.1、概述"></a>1.7.1、概述</h5><p>ACL 由三部分组成，分别是：权限模式（Scheme）、授权对象（ID）和权限（Permission），通常使用“scheme: ​id:permission”来标识一个有效的ACL 信息。下面分别介绍：</p>
+<ol>
+<li><p><strong>权限模式（Scheme）</strong></p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>world</td>
+<td>只有一个用户：anyone，代表登录 Zookeeper 所有人（默认）</td>
+</tr>
+<tr>
+<td>ip</td>
+<td>对客户端使用IP地址认证。</td>
+</tr>
+<tr>
+<td>auth</td>
+<td>使用已添加认证的用户认证。</td>
+</tr>
+<tr>
+<td>digest</td>
+<td>使用“用户名:密码”方式认证。</td>
+</tr>
+</tbody></table>
+</li>
+<li><p><strong>授权对象（ID）</strong></p>
+<p>授权对象ID是指，权限赋予的实体，例如：IP 地址或用户。</p>
+</li>
+<li><p><strong>权限（Permission）</strong></p>
+<table>
+<thead>
+<tr>
+<th>权限</th>
+<th>ACL简写</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>create</td>
+<td>c</td>
+<td>可以创建子节点。</td>
+</tr>
+<tr>
+<td>delete</td>
+<td>d</td>
+<td>可以删除子节点（仅下一级节点）。</td>
+</tr>
+<tr>
+<td>read</td>
+<td>r</td>
+<td>可以读取节点数据或子节点列表。</td>
+</tr>
+<tr>
+<td>write</td>
+<td>w</td>
+<td>可以对节点进行更新操作。</td>
+</tr>
+<tr>
+<td>admin</td>
+<td>a</td>
+<td>可以设置节点访问控制列表权限。</td>
+</tr>
+</tbody></table>
+</li>
+</ol>
+<h5 id="1-7-2、特性"><a href="#1-7-2、特性" class="headerlink" title="1.7.2、特性"></a>1.7.2、特性</h5><ul>
+<li>zooKeeper的权限控制是基于每个znode节点的，需要对每个节点设置权限。</li>
+<li>每个znode支持设置多种权限控制方案和多个权限。</li>
+<li>子节点不会继承父节点的权限，客户端无权访问某节点，但可能可以访问它的子节点。</li>
+</ul>
+<h5 id="1-7-3、案例"><a href="#1-7-3、案例" class="headerlink" title="1.7.3、案例"></a>1.7.3、案例</h5><ul>
+<li><p>world授权模式</p>
+<p>命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setAcl &lt;path&gt; world:anyone:&lt;acl&gt;</span><br></pre></td></tr></table></figure>
+
+<p>案例</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 0] create /node1 &quot;node1&quot;</span><br><span class="line">Created /node1</span><br><span class="line">[zk: localhost:2181(CONNECTED) 1] getAcl /node1</span><br><span class="line">&#x27;world,&#x27;anyone</span><br><span class="line">: cdrwa</span><br><span class="line">[zk: localhost:2181(CONNECTED) 2] setAcl /node1 world:anyone:crwa</span><br><span class="line">cZxid = 0x100000004</span><br><span class="line">ctime = Fri May 29 14:31:54 CST 2020</span><br><span class="line">mZxid = 0x100000004</span><br><span class="line">mtime = Fri May 29 14:31:54 CST 2020</span><br><span class="line">pZxid = 0x100000004</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 0</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 5</span><br><span class="line">numChildren = 0</span><br></pre></td></tr></table></figure></li>
+<li><p>IP授权模式</p>
+<p>命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setAcl &lt;path&gt; ip:&lt;ip&gt;:&lt;acl&gt;</span><br></pre></td></tr></table></figure>
+
+<p>案例</p>
+<p>注意：远程登录zookeeper命令:./zkCli.sh -server ip</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 18] create /node2 &quot;node2&quot;</span><br><span class="line">Created /node2</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 23] setAcl /node2 ip:192.168.150.101:cdrwa</span><br><span class="line">cZxid = 0xe</span><br><span class="line">ctime = Fri Dec 13 22:30:29 CST 2019</span><br><span class="line">mZxid = 0x10</span><br><span class="line">mtime = Fri Dec 13 22:33:36 CST 2019</span><br><span class="line">pZxid = 0xe</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 2</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 20</span><br><span class="line">numChildren = 0</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 25] getAcl /node2</span><br><span class="line">&#x27;ip,&#x27;192.168.150.101</span><br><span class="line">: cdrwa</span><br><span class="line"></span><br><span class="line">#使用IP非 192.168.150.101 的机器</span><br><span class="line">[zk: localhost:2181(CONNECTED) 0] get /node2</span><br><span class="line">Authentication is not valid : /node2 #没有权限</span><br></pre></td></tr></table></figure></li>
+<li><p>Auth授权模式</p>
+<p>命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">addauth digest &lt;user&gt;:&lt;password&gt; #添加认证用户</span><br><span class="line">setAcl &lt;path&gt; auth:&lt;user&gt;:&lt;acl&gt;</span><br></pre></td></tr></table></figure>
+
+<p>案例</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 6] create /node3 &quot;node3&quot;</span><br><span class="line">Created /node3</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">添加认证用户</span></span><br><span class="line">[zk: localhost:2181(CONNECTED) 7] addauth digest ld:123456</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 8] setAcl /node3 auth:ld:cdrwa</span><br><span class="line">cZxid = 0x10000000c</span><br><span class="line">ctime = Fri May 29 14:47:13 CST 2020</span><br><span class="line">mZxid = 0x10000000c</span><br><span class="line">mtime = Fri May 29 14:47:13 CST 2020</span><br><span class="line">pZxid = 0x10000000c</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 0</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 5</span><br><span class="line">numChildren = 0</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 9] getAcl /node3</span><br><span class="line">&#x27;digest,&#x27;ld:kesl2p6Yx58a+/mP+TKSFZkzkZ0=</span><br><span class="line">: cdrwa</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">添加认证用户后可以访问</span></span><br><span class="line">[zk: localhost:2181(CONNECTED) 10] get /node3</span><br><span class="line">node3</span><br><span class="line">cZxid = 0x10000000c</span><br><span class="line">ctime = Fri May 29 14:47:13 CST 2020</span><br><span class="line">mZxid = 0x10000000c</span><br><span class="line">mtime = Fri May 29 14:47:13 CST 2020</span><br><span class="line">pZxid = 0x10000000c</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 0</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 5</span><br><span class="line">numChildren = 0</span><br></pre></td></tr></table></figure></li>
+<li><p>Digest授权模式</p>
+<p>命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">setAcl &lt;path&gt; digest:&lt;user&gt;:&lt;password&gt;:&lt;acl&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这里的密码是经过SHA1及BASE64处理的密文，在SHELL中可以通过以下命令计算：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo -n &lt;user&gt;:&lt;password&gt; | openssl dgst -binary -sha1 | openssl base64</span><br></pre></td></tr></table></figure>
+
+<p>先来计算一个密文</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo -n monkey:123456 | openssl dgst -binary -sha1 | openssl base64</span><br></pre></td></tr></table></figure>
+
+<p>案例</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 12] create /node4 &quot;node4&quot;</span><br><span class="line">Created /node4</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 13] setAcl /node4 digest:monkey:Rk6u/zJJdOYrTZ6+J0p4/4gTILg=:cdrwa</span><br><span class="line">cZxid = 0x10000000e</span><br><span class="line">ctime = Fri May 29 14:52:50 CST 2020</span><br><span class="line">mZxid = 0x10000000e</span><br><span class="line">mtime = Fri May 29 14:52:50 CST 2020</span><br><span class="line">pZxid = 0x10000000e</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 0</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 5</span><br><span class="line">numChildren = 0</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">没有权限无法读取</span></span><br><span class="line">[zk: localhost:2181(CONNECTED) 14] getAcl /node4</span><br><span class="line">Authentication is not valid : /node4</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_">#</span><span class="language-bash">添加认证用户</span></span><br><span class="line">[zk: localhost:2181(CONNECTED) 15] addauth digest monkey:123456</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 16] getAcl /node4               </span><br><span class="line">&#x27;digest,&#x27;monkey:Rk6u/zJJdOYrTZ6+J0p4/4gTILg=</span><br><span class="line">: cdrwa</span><br><span class="line"></span><br><span class="line">[zk: localhost:2181(CONNECTED) 17] get /node4</span><br><span class="line">node4</span><br><span class="line">cZxid = 0x10000000e</span><br><span class="line">ctime = Fri May 29 14:52:50 CST 2020</span><br><span class="line">mZxid = 0x10000000e</span><br><span class="line">mtime = Fri May 29 14:52:50 CST 2020</span><br><span class="line">pZxid = 0x10000000e</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 0</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 5</span><br><span class="line">numChildren = 0</span><br></pre></td></tr></table></figure></li>
+<li><p>多种模式授权</p>
+<p>同一个节点可以同时使用多种模式授权</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 18] create /node5 &quot;node5&quot;</span><br><span class="line">Created /node5</span><br><span class="line">[zk: localhost:2181(CONNECTED) 19] addauth digest ld:123456</span><br><span class="line">[zk: localhost:2181(CONNECTED) 20] setAcl /node5 ip:192.168.150.101:cdrwa,auth:ld:cdrwa</span><br><span class="line">cZxid = 0x100000010</span><br><span class="line">ctime = Fri May 29 14:56:38 CST 2020</span><br><span class="line">mZxid = 0x100000010</span><br><span class="line">mtime = Fri May 29 14:56:38 CST 2020</span><br><span class="line">pZxid = 0x100000010</span><br><span class="line">cversion = 0</span><br><span class="line">dataVersion = 0</span><br><span class="line">aclVersion = 1</span><br><span class="line">ephemeralOwner = 0x0</span><br><span class="line">dataLength = 5</span><br><span class="line">numChildren = 0</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h5 id="1-7-4、ACL-超级管理员"><a href="#1-7-4、ACL-超级管理员" class="headerlink" title="1.7.4、ACL 超级管理员"></a>1.7.4、ACL 超级管理员</h5><p>zookeeper的权限管理模式有一种叫做super，该模式提供一个超管可以方便的访问任何权限的节点</p>
+<p>假设这个超管是：super:admin，需要先为超管生成密码的密文</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo -n super:admin | openssl dgst -binary -sha1 | openssl base64</span><br></pre></td></tr></table></figure>
+
+<p>那么打开zookeeper目录下的/bin/zkServer.sh服务器脚本文件，找到如下一行：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nohup</span> <span class="variable">$JAVA</span> <span class="string">&quot;-Dzookeeper.log.dir=<span class="variable">$&#123;ZOO_LOG_DIR&#125;</span>&quot;</span> <span class="string">&quot;-Dzookeeper.root.logger=<span class="variable">$&#123;ZOO_LOG4J_PROP&#125;</span>&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>这就是脚本中启动zookeeper的命令，默认只有以上两个配置项，我们需要加一个超管的配置项</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;-Dzookeeper.DigestAuthenticationProvider.superDigest=super:xQJmxLMiHGwaqBvst5y6rkB6HQs=&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>那么修改以后这条完整命令变成了</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">nohup</span> <span class="variable">$JAVA</span> <span class="string">&quot;-Dzookeeper.log.dir=<span class="variable">$&#123;ZOO_LOG_DIR&#125;</span>&quot;</span> <span class="string">&quot;-Dzookeeper.root.logger=<span class="variable">$&#123;ZOO_LOG4J_PROP&#125;</span>&quot;</span> <span class="string">&quot;-Dzookeeper.DigestAuthenticationProvider.superDigest=super:xQJmxLMiHGwaqBvst5y6rkB6HQs=&quot;</span>\</span><br><span class="line">    -<span class="built_in">cp</span> <span class="string">&quot;<span class="variable">$CLASSPATH</span>&quot;</span> <span class="variable">$JVMFLAGS</span> <span class="variable">$ZOOMAIN</span> <span class="string">&quot;<span class="variable">$ZOOCFG</span>&quot;</span> &gt; <span class="string">&quot;<span class="variable">$_ZOO_DAEMON_OUT</span>&quot;</span> 2&gt;&amp;1 &lt; /dev/null &amp;</span><br></pre></td></tr></table></figure>
+
+<p>之后启动zookeeper,输入如下命令添加权限</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">addauth digest super:admin #添加认证用户</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="2、Leader-选举"><a href="#2、Leader-选举" class="headerlink" title="2、Leader 选举"></a>2、Leader 选举</h3><h4 id="2-1、服务器状态"><a href="#2-1、服务器状态" class="headerlink" title="2.1、服务器状态"></a>2.1、服务器状态</h4><ul>
+<li>looking：寻找leader状态。当服务器处于该状态时，它会认为当前集群中没有Leader，因此需要进入 Leader 选举流程。</li>
+<li>leading：领导者状态。表明当前服务器角色是leader。</li>
+<li>following：跟随者状态。表明当前服务器角色是follower。</li>
+<li>observing：观察者状态。表明当前服务器角色是observer。</li>
+</ul>
+<h4 id="2-2、服务器启动时期的-Leader-选举"><a href="#2-2、服务器启动时期的-Leader-选举" class="headerlink" title="2.2、服务器启动时期的 Leader 选举"></a>2.2、服务器启动时期的 Leader 选举</h4><p>在服务器集群初始化阶段，我们以 3 台机器组成的服务器集群为例，当有一台服务器server1 启动的时候，它是无法进行 Leader 选举的，当第二台机器 server2 也启动时，此时这两台服务器已经能够进行互相通信，每台机器都试图找到一个 Leader，于是便进入了 Leader 选举流程。</p>
+<ol>
+<li><p>每个server发出一个投票。由于是初始情况，server1和server2都会将自己作为leader服务器来进行投票，每次投票会包含所推举的服务器的myid和zxid，使用(myid, zxid)来表示，此时server1的投票为(1, 0)，server2的投票为(2, 0)，然后各自将这个投票发给集群中其他机器。</p>
+</li>
+<li><p>集群中的每台服务器接收来自集群中各个服务器的投票。</p>
+</li>
+<li><p>处理投票。针对每一个投票，服务器都需要将别人的投票和自己的投票进行pk，pk规则如下</p>
+<ul>
+<li>优先检查zxid。zxid比较大的服务器优先作为leader。</li>
+<li>如果zxid相同，那么就比较myid。myid较大的服务器作为leader服务器。</li>
+</ul>
+<p>​       对于Server1而言，它的投票是(1, 0)，接收Server2的投票为(2, 0)，首先会比较两者的zxid，均为0，再比较myid，此时server2的myid最大，于是更新自己的投票为(2, 0)，然后重新投票，对于server2而言，其无须更新自己的投票，只是再次向集群中所有机器发出上一次投票信息即可。</p>
+</li>
+<li><p>统计投票。每次投票后，服务器都会统计投票信息，判断是否已经有过半机器接受到相同的投票信息，对于server1、server2而言，都统计出集群中已经有两台机器接受了(2, 0)的投票信息，此时便认为已经选出了leader。</p>
+</li>
+<li><p>改变服务器状态。一旦确定了leader，每个服务器就会更新自己的状态，如果是follower，那么就变更为following，如果是leader，就变更为leading。</p>
+</li>
+</ol>
+<h4 id="2-3、服务器运行时期的-Leader-选举"><a href="#2-3、服务器运行时期的-Leader-选举" class="headerlink" title="2.3、服务器运行时期的 Leader 选举"></a>2.3、服务器运行时期的 Leader 选举</h4><p>在zookeeper运行期间，leader与非leader服务器各司其职，即便当有非leader服务器宕机或新加入，此时也不会影响leader，但是一旦leader服务器挂了，那么整个集群将暂停对外服务，进入新一轮leader选举，其过程和启动时期的Leader选举过程基本一致。</p>
+<p>假设正在运行的有server1、server2、server3三台服务器，当前leader是server2，若某一时刻leader挂了，此时便开始Leader选举。选举过程如下:</p>
+<ol>
+<li>变更状态。leader挂后，余下的非 Observer 服务器都会将自己的服务器状态变更为looking，然后开始进入leader选举过程。</li>
+<li>每个server会发出一个投票。在运行期间，每个服务器上的zxid可能不同，此时假定server1的zxid为123，server3的zxid为122，在第一轮投票中，server1和server3都会投自己，产生投票(1, 123)，(3, 122)，然后各自将投票发送给集群中所有机器。</li>
+<li>接收来自各个服务器的投票。</li>
+<li>处理投票。对于投票的处理，和上面提到的服务器启动期间的处理规则是一致的。在这个例子里面，由于 Server1 的 zxid 为 123，Server3 的 zxid 为 122，那么显然，Server1 会成为 Leader。</li>
+<li>统计投票。</li>
+<li>改变服务器状态。</li>
+</ol>
+<h4 id="2-4、Observer-角色及其设置"><a href="#2-4、Observer-角色及其设置" class="headerlink" title="2.4、Observer 角色及其设置"></a>2.4、Observer 角色及其设置</h4><p>observer角色特点：</p>
+<ol>
+<li>不参与集群的leader选举</li>
+<li>不参与集群中写数据时的ack反馈</li>
+</ol>
+<p>为了使用observer角色，在任何想变成observer角色的配置文件中加入如下配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">peerType=observer</span><br></pre></td></tr></table></figure>
+
+<p>并在所有server的配置文件中，配置成observer模式的server的那行配置追加:observer，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">server.3=192.168.60.130:2289:3389:observer</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://blog.lee81.cn/2020/04/18/Zookeeper%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/" title="Zookeeper深入原理" target="_blank" rel="external">https://blog.lee81.cn/2020/04/18/Zookeeper深入原理/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/ldknife" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/ldknife" target="_blank"><span class="text-dark">凌风</span><small class="ml-1x">一个程序员界的小学生</small></a></h3>
+        <div>错把陈醋当做墨，写近半生都是酸</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2020/04/25/Zookeeper%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/" title="Zookeeper使用场景"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2020/04/12/Zookeeper%E5%AE%A2%E6%88%B7%E7%AB%AF%E4%BD%BF%E7%94%A8/" title="Zookeeper客户端使用"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/Over-Coding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        &copy; 2022 八一
+        
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+   
+
+
+  <script src="//cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.3.5/dist/jquery.fancybox.min.js"></script>
+  <script>
+  //利用 FancyBox 实现点击图片放大
+  $(document).ready(function() {
+    $('article img').not('[hidden]').not('.panel-body img').each(function() {
+      var $image = $(this);
+      var imageCaption = $image.attr('alt');
+      var $imageWrapLink = $image.parent('a');
+      if ($imageWrapLink.length < 1) {
+        var src = this.getAttribute('src');
+        var idx = src.lastIndexOf('?');
+        if (idx != -1) {
+          src = src.substring(0, idx);
+        }
+        $imageWrapLink = $image.wrap('<a href="' + src + '"></a>').parent('a');
+      }
+      $imageWrapLink.attr('data-fancybox', 'images');
+      if (imageCaption) {
+        $imageWrapLink.attr('data-caption', imageCaption);
+      }
+    });
+    $().fancybox({
+      selector: '[data-fancybox="images"]',
+      hash: false,
+      loop: false,
+    });
+  });
+  </script>
+
+
+
+
+
+</body>
+</html>

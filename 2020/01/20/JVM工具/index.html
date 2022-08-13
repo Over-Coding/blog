@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>JVM工具 | 凌风的blog</title>
+  <meta name="description" content="1、概述JDK为开发人员提供一些工具，可以查看异常堆栈、虚拟机运行日志、垃圾收集器日志、线程快照、堆转储快照等。当我们遇到一些问题时，通过这些工具定位问题，解决问题。下面介绍几个常用的工具。 2、基础工具2.1、jpsjps（JVM Process Status Tool）列出正在运行的虚拟机进程，并显示虚拟机执行主类（Main Class，main() 函数所在的类）名称以及这些进程的本地虚拟机">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JVM工具">
+<meta property="og:url" content="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1、概述JDK为开发人员提供一些工具，可以查看异常堆栈、虚拟机运行日志、垃圾收集器日志、线程快照、堆转储快照等。当我们遇到一些问题时，通过这些工具定位问题，解决问题。下面介绍几个常用的工具。 2、基础工具2.1、jpsjps（JVM Process Status Tool）列出正在运行的虚拟机进程，并显示虚拟机执行主类（Main Class，main() 函数所在的类）名称以及这些进程的本地虚拟机">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/console%E8%BF%9E%E6%8E%A5.PNG">
+<meta property="og:image" content="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/console%E4%B8%BB%E7%95%8C%E9%9D%A2.PNG">
+<meta property="og:image" content="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/visualVM%E9%A6%96%E9%A1%B5.PNG">
+<meta property="article:published_time" content="2020-01-20T02:02:18.000Z">
+<meta property="article:modified_time" content="2022-08-13T12:29:03.572Z">
+<meta property="article:author" content="八一">
+<meta property="article:tag" content="JVM">
+<meta property="article:tag" content="工具">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/console%E8%BF%9E%E6%8E%A5.PNG">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+    <link href="//cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.3.5/dist/jquery.fancybox.min.css" rel="stylesheet">
+  
+  
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+
+<body class="main-center theme-black" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/ldknife" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">凌风</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">一个程序员界的小学生</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> BeiJing, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="搜索" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="想要查找什么..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">项目</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">友链</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">关于</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/Over-Coding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Cassandra/">Cassandra</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Elasticsearch/">Elasticsearch</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Hexo/">Hexo</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/JVM/">JVM</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Kafka/">Kafka</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Maven/">Maven</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Nginx/">Nginx</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spring/">Spring</a><span class="category-list-count">3</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/SpringBoot/">SpringBoot</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Zookeeper/">Zookeeper</a><span class="category-list-count">6</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/">动态代理</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AC%94%E8%AF%95%E9%A2%98/">笔试题</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cassandra/" rel="tag">Cassandra</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/" rel="tag">Docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Elasticsearch/" rel="tag">Elasticsearch</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/" rel="tag">Hexo</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/JVM/" rel="tag">JVM</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/" rel="tag">Linux</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Maven/" rel="tag">Maven</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/" rel="tag">Nginx</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring/" rel="tag">Spring</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SpringBoot/" rel="tag">SpringBoot</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ubuntu/" rel="tag">Ubuntu</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/WebSocket/" rel="tag">WebSocket</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/" rel="tag">Zookeeper</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%B8%80%E8%87%B4%E6%80%A7%E5%8D%8F%E8%AE%AE/" rel="tag">一致性协议</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/" rel="tag">使用场景</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" rel="tag">动态代理</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%89%E8%A3%85/" rel="tag">安装</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%AE%A2%E6%88%B7%E7%AB%AF/" rel="tag">客户端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag">工具</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%8E%92%E5%BA%8F/" rel="tag">排序</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%B7%B1%E5%85%A5%E5%8E%9F%E7%90%86/" rel="tag">深入原理</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AC%94%E8%AF%95%E9%A2%98/" rel="tag">笔试题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E7%AE%97%E6%B3%95/" rel="tag">算法</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E8%BF%90%E7%BB%B4/" rel="tag">运维</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" rel="tag">集群搭建</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">八月 2022</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/08/">八月 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/05/">五月 2020</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/04/">四月 2020</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/03/">三月 2020</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/02/">二月 2020</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">一月 2020</a><span class="archive-list-count">7</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AC%94%E8%AF%95%E9%A2%98/">笔试题</a>
+              </p>
+              <p class="item-title">
+                <a href="/2022/08/13/%E8%AE%B0%E4%B8%80%E9%81%93%E7%AC%94%E8%AF%95%E9%A2%98/" class="title">记一道笔试题</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2022-08-13T12:29:03.596Z" itemprop="datePublished">2022-08-13</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/08/08/%E7%AE%97%E6%B3%95--%E6%8F%92%E5%85%A5%E6%8E%92%E5%BA%8F/" class="title">算法--插入排序</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-08-08T14:32:27.000Z" itemprop="datePublished">2020-08-08</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/08/06/%E7%AE%97%E6%B3%95--%E9%80%89%E6%8B%A9%E6%8E%92%E5%BA%8F/" class="title">算法--选择排序</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-08-06T13:15:20.000Z" itemprop="datePublished">2020-08-06</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/%E7%AE%97%E6%B3%95/">算法</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/08/05/%E7%AE%97%E6%B3%95--%E5%86%92%E6%B3%A1%E6%8E%92%E5%BA%8F/" class="title">算法--冒泡排序</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-08-05T06:09:27.000Z" itemprop="datePublished">2020-08-05</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Kafka/">Kafka</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/09/Kafka%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA/" class="title">Kafka集群搭建</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-09T01:10:44.000Z" itemprop="datePublished">2020-05-09</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#1%E3%80%81%E6%A6%82%E8%BF%B0"><span class="toc-number">1.</span> <span class="toc-text">1、概述</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2%E3%80%81%E5%9F%BA%E7%A1%80%E5%B7%A5%E5%85%B7"><span class="toc-number">2.</span> <span class="toc-text">2、基础工具</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1%E3%80%81jps"><span class="toc-number">2.1.</span> <span class="toc-text">2.1、jps</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2%E3%80%81jstat"><span class="toc-number">2.2.</span> <span class="toc-text">2.2、jstat</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-3%E3%80%81jinfo"><span class="toc-number">2.3.</span> <span class="toc-text">2.3、jinfo</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-4%E3%80%81jmap"><span class="toc-number">2.4.</span> <span class="toc-text">2.4、jmap</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-5%E3%80%81jstack"><span class="toc-number">2.5.</span> <span class="toc-text">2.5、jstack</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3%E3%80%81%E5%8F%AF%E8%A7%86%E5%8C%96%E5%B7%A5%E5%85%B7"><span class="toc-number">3.</span> <span class="toc-text">3、可视化工具</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1%E3%80%81JConsole"><span class="toc-number">3.1.</span> <span class="toc-text">3.1、JConsole</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2%E3%80%81JVisualVM"><span class="toc-number">3.2.</span> <span class="toc-text">3.2、JVisualVM</span></a></li></ol></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-JVM工具" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JVM工具
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2020/01/20/JVM%E5%B7%A5%E5%85%B7/" class="article-date">
+	  <time datetime="2020-01-20T02:02:18.000Z" itemprop="datePublished">2020-01-20</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/JVM/">JVM</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/JVM/" rel="tag">JVM</a>, <a class="article-tag-link-link" href="/tags/%E5%B7%A5%E5%85%B7/" rel="tag">工具</a>
+  </span>
+
+
+        
+	<span class="article-read hidden-xs">
+	    <i class="icon icon-eye-fill" aria-hidden="true"></i>
+	    <span id="busuanzi_container_page_pv">
+			<span id="busuanzi_value_page_pv">0</span>
+		</span>
+	</span>
+
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2020/01/20/JVM%E5%B7%A5%E5%85%B7/#comments" class="article-comment-link">评论</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">字数统计: 2.2k(字)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">阅读时长: 8(分)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="1、概述"><a href="#1、概述" class="headerlink" title="1、概述"></a>1、概述</h3><p>JDK为开发人员提供一些工具，可以查看异常堆栈、虚拟机运行日志、垃圾收集器日志、线程快照、堆转储快照等。当我们遇到一些问题时，通过这些工具定位问题，解决问题。下面介绍几个常用的工具。</p>
+<h3 id="2、基础工具"><a href="#2、基础工具" class="headerlink" title="2、基础工具"></a>2、基础工具</h3><h4 id="2-1、jps"><a href="#2-1、jps" class="headerlink" title="2.1、jps"></a>2.1、jps</h4><p>jps（JVM Process Status Tool）列出正在运行的虚拟机进程，并显示虚拟机执行主类（Main Class，main() 函数所在的类）名称以及这些进程的本地虚拟机唯一ID(LVMID，Local Virtual Machine Identifier)。</p>
+<p><strong>命令格式：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jps [options] [hostid]</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>参数解释：</strong></p>
+<ul>
+<li><p>options：可以使用如下参数。</p>
+<ul>
+<li>-q：显示进程ID。</li>
+<li>-m：显示进程ID，主类名称，以及传入main方法的参数。</li>
+<li> -l：显示进程ID，主类全名。</li>
+<li>-v：显示进程ID，主类名称，以及传入JVM的参数。</li>
+<li>-V：显示进程ID，主类名称。</li>
+</ul>
+<p>注意：其中 -mlv 可以连用。</p>
+</li>
+<li><p>hostid：主机或者服务器的ip，如果不指定，默认为当前的主机或者是服务器。</p>
+</li>
+</ul>
+<p><strong>示例：</strong>列出所有的虚拟机进程。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jps -l</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-2、jstat"><a href="#2-2、jstat" class="headerlink" title="2.2、jstat"></a>2.2、jstat</h4><p>jstat（JVM Statistics Monitoring Tool）是用于监视虚拟机各种运行状态信息的命令行工具。可以显示本地或者远程虚拟机进程中的类加载、内存、垃圾收集、即时编译等运行时数据。</p>
+<p><strong>命令格式：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstat [option vmid [interval[s|ms] [count]]] &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>参数解释：</strong></p>
+<ul>
+<li>option：指定要查询的虚拟机信息，主要分为3类：类加载、内存、垃圾收集和即时编译状况，具体选项及作用如下：<ul>
+<li>-class：监视类加载、卸载数量、总空间以及类装载所耗费的时间。</li>
+<li>-compiler：输出即时编译器编译过的方法、耗时等信息。</li>
+<li>-gc：监视Java 堆状况，包括 Eden 区、2个 Survivor区、老年代、永久代等的容量，已用空间，垃圾收集时间合计等信息。</li>
+<li>-gccapacity：监视内容与 gc 基本相同，但输出主要关注 Java 堆各个区域使用到的最大、最小空间。</li>
+<li>-gccause：显示有关垃圾收集统计信息（同-gcutil），以及上一次和当前（如果适用）垃圾收集事件的原因。</li>
+<li>-gcnew：显示新生代行为的统计信息。</li>
+<li>-gcnewcapacity：显示有关新生代大小及其相应空间的统计信息。</li>
+<li>-gcold：显示有关老年代行为的统计信息。</li>
+<li>-gcoldcapacity：显示有关老年代大小及其相应空间的统计信息。</li>
+<li>-gcmetacapacity：显示有关元空间大小的统计信息。</li>
+<li>-gcutil：显示有关垃圾收集统计信息。</li>
+<li>-printcompilation：显示Java HotSpot VM编译方法统计信息。</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>vmid：如果是本地虚拟机进程，vmid和本地虚拟机唯一ID是一致的；如果是远程虚拟机进程，那么vmid的格式应当是：protocol:lvmid[@hostname[:port]/servername]</p>
+</li>
+<li><p>interval：采样间隔，单位为秒(s)或毫秒(ms)，默认单位是毫秒。必须为正整数。指定后，该jstat命令将在每个间隔产生其输出。</p>
+</li>
+<li><p>count：要显示的样本数。</p>
+</li>
+</ul>
+<p><strong>示例：</strong></p>
+<ol>
+<li>展示类加载器统计信息。</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstat -class 6240</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<p>Loaded  Bytes  Unloaded  Bytes     Time<br>   610  1232.9        0     0.0       0.08</p>
+<ul>
+<li>Loaded：已加载的类总数。</li>
+<li>Bytes：加载的KB数。</li>
+<li>Unloaded：卸载的类总数。</li>
+<li>Bytes：卸载的KB数。</li>
+<li>Time：执行类加载和卸载操作所花费的时间。</li>
+</ul>
+<ol start="2">
+<li>展示Java HotSpot VM 即时编译器统计信息。</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstat -compiler 6240</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<p>Compiled Failed Invalid   Time   FailedType FailedMethod<br>      74      0       0     0.02          0</p>
+<ul>
+<li>Compiled：执行的编译任务数。</li>
+<li>Failed：失败的编译任务数。</li>
+<li>Invalid：无效的编译任务数。</li>
+<li>Time：执行编译任务所花费的时间。</li>
+<li>FailedType：上次失败的编译的编译类型。</li>
+<li>FailedMethod：上次失败的编译的类名和方法。</li>
+</ul>
+<ol start="3">
+<li>展示垃圾收集的堆统计信息。</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstat -gc 6240</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<p> S0C    S1C    S0U    S1U      EC       EU        OC         OU       MC     MU    CCSC   CCSU   YGC     YGCT    FGC    FGCT    GCT<br>1024.0 1024.0  0.0    0.0    8192.0   5049.1   10240.0      0.0     4480.0 776.8  384.0   76.6       0    0.000   0      0.000  0.000</p>
+<ul>
+<li>S0C：当前幸存者空间0容量（KB）。</li>
+<li>S1C：当前幸存者空间1容量（KB）。</li>
+<li>S0U：幸存者空间0使用大小（KB）。</li>
+<li>S1U：幸存者空间1使用大小（KB）。</li>
+<li>EC：当前伊甸园空间容量（KB）。</li>
+<li>EU：伊甸园空间使用大小（KB）。</li>
+<li>OC：当前老年代容量（KB）。</li>
+<li>OU：老年代使用大小（KB）。</li>
+<li>MC：元空间容量（KB）。</li>
+<li>MU：元空间使用大小（KB）。</li>
+<li>CCSC：压缩的类空间容量（KB）。</li>
+<li>CCSU：使用的压缩类空间（KB）。</li>
+<li>YGC：新生代垃圾收集事件的数量。</li>
+<li>YGCT：新生代垃圾收集时间。</li>
+<li>FGC：完整GC垃圾收集事件的数量。</li>
+<li>FGCT：完整GC垃圾收集时间。</li>
+<li>GCT：总垃圾收集时间。</li>
+</ul>
+<h4 id="2-3、jinfo"><a href="#2-3、jinfo" class="headerlink" title="2.3、jinfo"></a>2.3、jinfo</h4><p>jinfo（Configuration Info for Java）的作用是实时查看和调整虚拟机各项参数。</p>
+<p><strong>命令格式：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jinfo [option] &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>参数解释：</strong></p>
+<ul>
+<li>option<ul>
+<li>no option：输出全部的参数和系统属性。</li>
+<li>-flag name：输出对应名称的参数。</li>
+<li>-flag[+|-]name：开启或者关闭对应名称的参数。</li>
+<li>-flag name=value：设定对应名称的参数。</li>
+<li>-flags：输出全部的参数。</li>
+<li>-sysprops：输出系统属性。</li>
+</ul>
+</li>
+</ul>
+<p><strong>示例：</strong>输出当前进程的jvm全部参数。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jinfo -flags 6240</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-4、jmap"><a href="#2-4、jmap" class="headerlink" title="2.4、jmap"></a>2.4、jmap</h4><p>jmap（Memory Map for Java）可以生成 java 程序的 dump 文件，也可以查看堆内对象信息、查看ClassLoader 的信息以及 finalizer 队列。</p>
+<p><strong>命令格式：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jmap [option] &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>参数解释：</strong></p>
+<ul>
+<li>option<ul>
+<li>no option：查看进程的内存映像信息，类似 Solaris pmap命令。</li>
+<li>-heap：显示Java堆详细信息。</li>
+<li>-histo[:live]：显示堆中对象的统计信息。</li>
+<li>-clstats：打印类加载器信息。</li>
+<li>-finalizerinfo：显示在F-Queue队列等待Finalize线程执行finalizer方法的对象。</li>
+<li>-dump:<dump-options>：生成堆转储快照。</li>
+</ul>
+</li>
+</ul>
+<p><strong>示例：</strong>生成堆转储快照。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jmap -dump:live,format=b,file=E:\jmap.bin 34152</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="2-5、jstack"><a href="#2-5、jstack" class="headerlink" title="2.5、jstack"></a>2.5、jstack</h4><p>jstack（Stack Trace for Java）命令用于查看或导出虚拟机当前时刻的线程快照。线程快照是当前java虚拟机内每一条线程正在执行的方法堆栈的集合，生成线程快照的主要目的是定位线程出现长时间停顿的原因，如线程间死锁、死循环、长时间等待外部资源等。线程出现停顿的时候通过jstack来查看各个线程的调用堆栈，就可以知道没有响应的线程到底在后台做什么 事情，或者等待什么资源。如果java程序崩溃生成core文件，jstack工具可以用来获得core文件的java stack和native stack的信息，从而可以轻松地知道java程序是如何崩溃和在程序何处发生问题。另外，jstack工具还可以附属到正在运行的java程序中，看到当时运行的java程序的java stack和native stack的信息。</p>
+<p><strong>命令格式：</strong></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstack [option] &lt;pid&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>参数解释：</strong></p>
+<ul>
+<li>option<ul>
+<li>-F：当线程挂起时，使用jstack -l pid 请求不被响应时，强制输出线程堆栈。</li>
+<li>-l：除堆栈外，显示关于锁的附加信息，例如ownable synchronizers</li>
+<li>-m：可以同时输出java以及C/C++的堆栈信息。</li>
+</ul>
+</li>
+</ul>
+<p><strong>示例：</strong> 输出堆栈信息，并显示关于锁的附加信息。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jstack -l 34692</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3、可视化工具"><a href="#3、可视化工具" class="headerlink" title="3、可视化工具"></a>3、可视化工具</h3><h4 id="3-1、JConsole"><a href="#3-1、JConsole" class="headerlink" title="3.1、JConsole"></a>3.1、JConsole</h4><p>JConsole（Java Monitoring and Management Console）是一款基于JMX的可视化监视、管理工具。它的主要功能是通过JMX的MBean 对系统进行信息收集和参数动态调整。</p>
+<p><strong>连接：</strong></p>
+<p><img src="console%E8%BF%9E%E6%8E%A5.PNG"></p>
+<p>可以连接本地进程，也支持远程进程。</p>
+<p><strong>主界面：</strong></p>
+<p><img src="console%E4%B8%BB%E7%95%8C%E9%9D%A2.PNG"></p>
+<p>概览中展示了堆内存、线程、类、CPU的使用信息。上面还可以查看每个模块详细的信息。这里没什么难度，就不详细介绍了。</p>
+<h4 id="3-2、JVisualVM"><a href="#3-2、JVisualVM" class="headerlink" title="3.2、JVisualVM"></a>3.2、JVisualVM</h4><p>VisualVM（All-in-One Java Troubleshooting Tool）是功能最强大的运行监视和故障处理程序之一，曾经在很长一段时间内是Oracle官方主力发展的虚拟机故障处理工具。Oracle曾在VisualVM的软件说明中写上了“All-in-One”的字样，预示着它除了常规的运行监视、故障处理外，还将提供其他方面的能力，譬如性能分析（Profiling）。VisualVM的性能分析功能比起JProfiler、YourKit等专业且收费的Profiling工具都不遑多让。而且相比这些第三方工具，VisualVM还有一个很大的优点：不需要被监视的程序基于特殊Agent去运行，因此它的通用性很强，对应用程序实际性能的影响也较小，使得它可以直接应用在生产环境中。这个优点是JProfiler、YourKit等工具无法与之媲美的。</p>
+<p><img src="visualVM%E9%A6%96%E9%A1%B5.PNG"></p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://blog.lee81.cn/2020/01/20/JVM%E5%B7%A5%E5%85%B7/" title="JVM工具" target="_blank" rel="external">https://blog.lee81.cn/2020/01/20/JVM工具/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/ldknife" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/ldknife" target="_blank"><span class="text-dark">凌风</span><small class="ml-1x">一个程序员界的小学生</small></a></h3>
+        <div>错把陈醋当做墨，写近半生都是酸</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2020/02/02/Docker%E5%AE%89%E8%A3%85/" title="Docker安装"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2020/01/07/Spring%E4%BA%8B%E5%8A%A1/" title="Spring事务"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/Over-Coding" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="/" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        &copy; 2022 八一
+        
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+   
+
+
+  <script src="//cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.3.5/dist/jquery.fancybox.min.js"></script>
+  <script>
+  //利用 FancyBox 实现点击图片放大
+  $(document).ready(function() {
+    $('article img').not('[hidden]').not('.panel-body img').each(function() {
+      var $image = $(this);
+      var imageCaption = $image.attr('alt');
+      var $imageWrapLink = $image.parent('a');
+      if ($imageWrapLink.length < 1) {
+        var src = this.getAttribute('src');
+        var idx = src.lastIndexOf('?');
+        if (idx != -1) {
+          src = src.substring(0, idx);
+        }
+        $imageWrapLink = $image.wrap('<a href="' + src + '"></a>').parent('a');
+      }
+      $imageWrapLink.attr('data-fancybox', 'images');
+      if (imageCaption) {
+        $imageWrapLink.attr('data-caption', imageCaption);
+      }
+    });
+    $().fancybox({
+      selector: '[data-fancybox="images"]',
+      hash: false,
+      loop: false,
+    });
+  });
+  </script>
+
+
+
+
+
+</body>
+</html>
