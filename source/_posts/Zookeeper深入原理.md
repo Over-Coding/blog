@@ -7,7 +7,7 @@ tags:
 	- Zookeeper
 	- 深入原理
 toc: true
-typora-root-url: Zookeeper深入原理
+typora-root-url: ./Zookeeper深入原理
 ---
 
 > 本篇文章摘自《从Paxos到Zookeeper分布式一致性原理与实践》
@@ -18,7 +18,7 @@ typora-root-url: Zookeeper深入原理
 
 Zookeeper 的视图结构是一个树形结构，树上的每个节点称之为数据节点（即 ZNode），每个ZNode 上都可以保存数据，同时还可以挂载子节点。并且Zookeeper的根节点为 "/"。
 
-![](zookeeper数据结构.png)
+![](/zookeeper数据结构.png)
 
 
 
@@ -77,7 +77,7 @@ ZXID 是一个 64 位的数字，其中低 32 位可以看作是一个简单的�
 
 Zookeeper 提供了分布式数据的发布/订阅功能。一个典型的发布/订阅模型系统定义了一种一对多的订阅关系，能够让多个订阅者同时监听某一个主题对象，当这个主题对象自身状态变化时，会通知所有订阅者，使它们能够做出相应的处理。在 Zookeeper 中，引入了 Watcher 机制来实现这种分布式的通知功能。Zookeeper 允许客户端向服务端注册一个 Watcher 监听，当服务端的一些指定事件触发了这个 Watcher，那么就会向指定客户端发送一个事件通知来实现分布式的通知功能。
 
-![](Watcher.png)
+![](/Watcher.png)
 
 从上图可以看出 Zookeeper 的 Watcher 机制主要包括客户端线程、客户端WatchMananger 和 Zookeeper 服务器三部分。在具体工作流程上，简单地讲，客户端在向 Zookeeper 服务器注册 Watcher 的同时，会将 Watcher 对象存储在客户端的 WatchMananger 中。当 Zookeeper 服务器端触发 Watcher 事件后，会向客户端发送通知，客户端线程从 WatchManager 中取出对应的 Watcher 对象来执行回调逻辑。
 

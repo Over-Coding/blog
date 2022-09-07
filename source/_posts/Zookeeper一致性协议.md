@@ -58,7 +58,7 @@ typora-root-url: Zookeeper一致性协议
 
 CAP定理是指一个分布式系统不可能同时满足一致性（C：Consistency）、可用性（A：Availability）和分区容错性（P：Partition tolerance）这三个基本需求，最多只能同时满足其中的两项。因为分布式系统中分区容错性是一定存在的，所以主要还是在一致性和可用性中进行权衡选择。
 
-![](cap.jpg)
+![](/cap.jpg)
 
 ##### 1.2.1、一致性
 

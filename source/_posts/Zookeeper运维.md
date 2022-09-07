@@ -312,15 +312,15 @@ https://issues.apache.org/jira/secure/attachment/12436620/ZooInspector.zip
 java -jar zookeeper-dev-ZooInspector.jar
 ```
 
-![](运行.JPG)
+![](/运行.JPG)
 
 点击左上角连接按钮，输入zk服务地址：ip或者主机名:2181
 
-![](连接.JPG)
+![](/连接.JPG)
 
 点击OK，即可查看ZK节点信息
 
-![](连接成功.JPG)
+![](/连接成功.JPG)
 
 
 

@@ -468,7 +468,7 @@ Bean的生命周期流程：
 **例子源码地址：
 https://github.com/LDknife/spring-example/tree/master/spring-bean**
 
-![](bean生命周期.PNG)
+![](/bean生命周期.PNG)
 
 
 
